@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="NEXUS-H context-aware human escalation and resolution engine.">
+  <title>NEXUS-H / Human control layer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">N</span><span>NEXUS<span class="muted">-H</span></span></a>
+    <span class="product-label">CONTEXT-AWARE HUMAN ESCALATION / RESOLUTION ENGINE</span>
+    <div class="top-actions"><span class="status-dot"></span><span>DEMO ENVIRONMENT</span><button id="refresh-btn" class="icon-btn" title="Refresh data">↻</button></div>
+  </header>
+
+  <main class="shell">
+    <section class="page-heading">
+      <div><p class="eyebrow">OPERATIONS CONTROL ROOM / <span id="clock"></span></p><h1>Human judgment,<br><em>at the right boundary.</em></h1></div>
+      <div class="heading-note"><strong>AI does not replace the specialist.</strong><span>It knows when the specialist is the better intelligence.</span></div>
+    </section>
+
+    <section class="demo-strip">
+      <div><span class="eyebrow">DEMO MODE</span><strong>Launch a synthetic case</strong></div>
+      <div id="scenario-list" class="scenario-list"><span class="loading">Loading scenarios...</span></div>
+    </section>
+
+    <section class="workspace-layout">
+      <aside class="inbox panel">
+        <div class="panel-heading"><div><span class="eyebrow">01 / INBOX</span><h2>Active cases</h2></div><span id="case-count" class="count-badge">—</span></div>
+        <label class="search"><span>⌕</span><input id="case-search" type="search" placeholder="Find a case"></label>
+        <div id="case-list" class="case-list"><div class="loading">Loading cases...</div></div>
+      </aside>
+
+      <section class="case-workspace">
+        <div id="empty-state" class="empty-state panel"><span class="empty-icon">◌</span><h2>Select a case to begin</h2><p>The agent will retrieve evidence, evaluate the autonomy boundary, and create a decision-ready handoff when needed.</p></div>
+        <div id="active-case" class="hidden">
+          <div class="case-header panel">
+            <div><div class="case-id" id="case-id">CASE-—</div><h2 id="case-title">—</h2><p id="case-meta">—</p></div>
+            <button id="analyze-btn" class="primary-btn">Run agent analysis <span>↗</span></button>
+          </div>
+          <div class="conversation panel"><div class="panel-heading"><div><span class="eyebrow">02 / CUSTOMER CONTEXT</span><h3>Conversation</h3></div><span class="mini-label" id="case-status">—</span></div><div id="conversation-body"></div></div>
+          <div class="activity panel"><div class="panel-heading"><div><span class="eyebrow">03 / AGENT ACTIVITY</span><h3>Evidence & decisions</h3></div><span id="tool-count" class="mini-label">0 TOOL CALLS</span></div><div id="activity-body"><div class="activity-placeholder">Run analysis to see the agent retrieve only the context this case needs.</div></div></div>
+        </div>
+      </section>
+
+      <aside class="decision-column">
+        <div id="decision-card" class="decision-card panel muted-card"><span class="eyebrow">04 / AUTONOMY GATE</span><div class="decision-placeholder">Decision appears here after analysis.</div></div>
+        <div id="signals-card" class="signals-card panel hidden"><div class="panel-heading"><h3>Signals</h3><span class="mini-label">0—1 SCALE</span></div><div id="signals-body"></div></div>
+        <div id="brief-card" class="brief-card panel hidden"><div class="panel-heading"><div><span class="eyebrow">05 / HUMAN BRIEF</span><h3>Ready for takeover</h3></div><span class="brief-status">DECISION-READY</span></div><div id="brief-body"></div></div>
+      </aside>
+    </section>
+
+    <section class="lower-grid">
+      <div class="queue panel"><div class="panel-heading"><div><span class="eyebrow">06 / HUMAN QUEUE</span><h2>Handoffs</h2></div><span id="queue-count" class="count-badge">—</span></div><div class="table-wrap"><table><thead><tr><th>Priority</th><th>Case</th><th>Destination</th><th>Reason</th><th>Age</th></tr></thead><tbody id="queue-body"><tr><td colspan="5" class="loading">Loading queue...</td></tr></tbody></table></div></div>
+      <div class="audit panel"><div class="panel-heading"><div><span class="eyebrow">07 / AUDIT TRAIL</span><h2>What happened</h2></div></div><div id="audit-body"><div class="loading">Select and analyze a case.</div></div></div>
+    </section>
+  </main>
+  <footer><span>NEXUS-H / SYNTHETIC DATA ONLY</span><span>Escalation is an action, not an exception.</span></footer>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
