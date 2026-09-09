@@ -1,4 +1,5 @@
 const state = { cases: [], scenarios: [], selected: null };
+let installPrompt = null;
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 
@@ -78,7 +79,26 @@ async function loadAll() {
 
 $("#case-list").addEventListener("click", (event) => { const row = event.target.closest("[data-case]"); if (row) renderCase(state.cases.find((item) => item.case_id === row.dataset.case)); });
 $("#scenario-list").addEventListener("click", (event) => { const button = event.target.closest("[data-scenario]"); const item = state.cases.find((candidate) => candidate.case_id === button?.dataset.scenario || candidate.id === button?.dataset.scenario || candidate.scenario === button?.dataset.scenario); if (item) renderCase(item); });
-$("#case-search").addEventListener("input", renderCases); $("#analyze-btn").addEventListener("click", analyze); $("#refresh-btn").addEventListener("click", loadAll);
+$("#case-search").addEventListener("input", renderCases); $("#analyze-btn").addEventListener("click", analyze);
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+});
+$("#install-btn").addEventListener("click", async () => {
+  if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+    showToast("NEXUS-H is already installed.");
+    return;
+  }
+  if (installPrompt) {
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === "accepted") showToast("NEXUS-H was added to your apps.");
+    installPrompt = null;
+    return;
+  }
+  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  showToast(isIos ? "Tap Share, then Add to Home Screen." : "Use your browser menu and choose Install app or Add to Home screen.");
+});
 setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }, 1000);
 loadAll();
 

@@ -95,3 +95,7 @@ across iOS, Android, macOS, and Windows:
 
 The app shell is cached for faster repeat launches. Live case data still requires
 an internet connection.
+
+The dashboard header includes a **Download app** button. On supported browsers it
+opens the native install prompt; on iOS and other browsers it shows the matching
+manual installation instruction.
