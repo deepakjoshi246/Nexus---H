@@ -81,3 +81,7 @@ $("#scenario-list").addEventListener("click", (event) => { const button = event.
 $("#case-search").addEventListener("input", renderCases); $("#analyze-btn").addEventListener("click", analyze); $("#refresh-btn").addEventListener("click", loadAll);
 setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }, 1000);
 loadAll();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/static/service-worker.js"));
+}

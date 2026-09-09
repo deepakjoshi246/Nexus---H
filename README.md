@@ -83,3 +83,15 @@ python app.py
 
 They then open `http://127.0.0.1:5000`. This local copy uses synthetic data and
 does not require cloud credentials.
+
+## Install as an app
+
+The hosted dashboard is also a Progressive Web App (PWA), so the same link works
+across iOS, Android, macOS, and Windows:
+
+- **iPhone/iPad:** open the link in Safari, tap **Share**, then **Add to Home Screen**.
+- **Android:** open it in Chrome, tap the menu, then **Install app** or **Add to Home screen**.
+- **macOS/Windows:** open it in Chrome or Edge and use the install icon in the address bar, or choose **Install NEXUS-H** from the browser menu.
+
+The app shell is cached for faster repeat launches. Live case data still requires
+an internet connection.

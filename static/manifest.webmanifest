@@ -1,0 +1,19 @@
+{
+  "name": "NEXUS-H Human Escalation Engine",
+  "short_name": "NEXUS-H",
+  "description": "Context-aware human escalation and resolution engine.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7f7",
+  "theme_color": "#10202a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
