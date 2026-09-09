@@ -3,7 +3,12 @@ from nexus_h.service import NexusService
 
 def test_decisions_are_deterministic(tmp_path):
     service = NexusService(tmp_path / "test.db")
-    expected = {"case-100": "CONTINUE", "case-200": "APPROVAL", "case-300": "HANDOFF", "case-400": "CLARIFY"}
+    expected = {
+        "case-100": "CONTINUE", "case-200": "APPROVAL", "case-300": "HANDOFF", "case-400": "CLARIFY",
+        "case-401": "HANDOFF", "case-402": "HANDOFF", "case-403": "APPROVAL",
+        "case-404": "CONTINUE", "case-405": "APPROVAL", "case-406": "CONTINUE",
+        "case-407": "HANDOFF", "case-408": "HANDOFF", "case-409": "CONTINUE", "case-410": "APPROVAL",
+    }
     for case_id, action in expected.items():
         assert service.analyze_case(case_id)["action"] == action
 
@@ -18,5 +23,5 @@ def test_api_endpoints():
     from app import app
     client = app.test_client()
     assert client.get("/api/health").status_code == 200
-    assert len(client.get("/api/cases").json["cases"]) >= 4
+    assert len(client.get("/api/cases").json["cases"]) == 14
     assert client.post("/api/cases/case-100/analyze").json["action"] == "CONTINUE"

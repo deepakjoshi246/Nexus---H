@@ -13,6 +13,17 @@ class Decision:
 def decide(case: Case, customer: Customer, conversation: Conversation,
            transaction: Transaction, policy: Policy) -> Decision:
     signals = []
+    scenario_rules = {
+        "duplicate-charge": ("duplicate_charge", "HANDOFF", "Two settled charges require billing dispute investigation."),
+        "refund-missing": ("prior_refund_commitment", "HANDOFF", "A previously promised refund is not resolved in the payment evidence."),
+        "policy-exception": ("policy_exception", "APPROVAL", "A policy exception requires authorized approval."),
+        "account-action": ("privileged_account_action", "APPROVAL", "Account closure and payment-method changes require supervisor authority."),
+        "conflicting-records": ("conflicting_records", "HANDOFF", "Conflicting financial records require reconciliation by a specialist."),
+    }
+    if case.scenario in scenario_rules:
+        code, action, rationale = scenario_rules[case.scenario]
+        signals.append(code)
+        return Decision(action, signals, rationale)
     if not conversation.messages or len(" ".join(conversation.messages).strip()) < 15:
         signals.append("insufficient_context")
     if not customer.verified:

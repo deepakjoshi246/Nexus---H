@@ -31,13 +31,19 @@ class NexusService:
     def get_case(self, case_id): return next((c for c in CASES if c.id == case_id), None)
 
     def case_view(self, case):
-        customer, conversation, _, _ = self._lookup(case)
+        customer, conversation, transaction, policy = self._lookup(case)
         return {
             **case.to_dict(),
             "case_id": case.id,
             "customer_name": customer.name,
             "issue_type": case.scenario,
             "messages": [{"role": "customer", "content": message} for message in conversation.messages],
+            "customer_segment": customer.segment,
+            "customer_verified": customer.verified,
+            "transaction": transaction.__dict__,
+            "policy": policy.__dict__,
+            "owner": case.owner,
+            "category": case.category,
         }
 
     def health(self):
@@ -79,20 +85,28 @@ class NexusService:
         return result
 
     def _destination(self, action, case):
-        if action == "HANDOFF" and case.scenario == "fraud-handoff":
+        if action == "HANDOFF" and case.scenario in ("fraud-handoff",):
             return "fraud_specialist"
+        if action == "HANDOFF" and case.scenario == "conflicting-records":
+            return "payments_reconciliation"
+        if action == "HANDOFF" and case.scenario == "duplicate-charge":
+            return "billing_dispute_specialist"
+        if action == "HANDOFF" and case.scenario == "refund-missing":
+            return "refund_investigations"
+        if action == "APPROVAL" and case.scenario == "account-action":
+            return "supervisor"
         if action in ("HANDOFF", "APPROVAL"):
             return "billing_dispute_specialist"
         return "autonomous_resolution"
 
     def _signal_details(self, signals, transaction, conversation):
         values = {
-            "risk": (0.91 if "high_risk_transaction" in signals else 0.22, "Transaction risk and verification signals."),
+            "risk": (0.91 if "high_risk_transaction" in signals else (0.72 if "conflicting_records" in signals else 0.22), "Transaction risk and verification signals."),
             "uncertainty": (0.82 if "insufficient_context" in signals else 0.18, "How much context is needed before a safe action."),
-            "policy_boundary": (0.78 if "approval_threshold" in signals else 0.12, "Distance from autonomous policy authority."),
+            "policy_boundary": (0.78 if "approval_threshold" in signals or "policy_exception" in signals or "privileged_account_action" in signals else 0.12, "Distance from autonomous policy authority."),
             "emotion": (0.25, "No protected attributes inferred; operational conversation signal only."),
             "complexity": (0.44 if len(conversation.messages) > 1 else 0.18, "Number of unresolved threads in the case."),
-            "authority": (0.88 if "approval_threshold" in signals or "high_risk_transaction" in signals else 0.1, "Whether specialist or supervisor authority is required."),
+            "authority": (0.88 if any(code in signals for code in ("approval_threshold", "high_risk_transaction", "policy_exception", "privileged_account_action", "conflicting_records")) else 0.1, "Whether specialist or supervisor authority is required."),
         }
         return {key: {"score": score, "reason": reason} for key, (score, reason) in values.items()}
 
@@ -148,7 +162,7 @@ class NexusService:
     def queue(self):
         with self._connect() as db:
             rows = db.execute("SELECT * FROM handoffs ORDER BY created_at").fetchall()
-        return [{"id": r["id"], "case_id": r["case_id"], "action": r["action"], "priority": "URGENT", "destination": "fraud_specialist" if r["case_id"] == "case-300" else "billing_dispute_specialist", "escalation_reason": "Mandatory specialist review based on retrieved evidence.", "created_at": r["created_at"]} for r in rows]
+        return [{"id": r["id"], "case_id": r["case_id"], "action": r["action"], "priority": self.get_case(r["case_id"]).priority.upper(), "destination": self._destination("HANDOFF", self.get_case(r["case_id"])), "escalation_reason": "Mandatory specialist review based on retrieved evidence.", "created_at": r["created_at"]} for r in rows]
 
     def handoff_detail(self, handoff_id):
         with self._connect() as db:
