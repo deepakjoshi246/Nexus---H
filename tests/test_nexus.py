@@ -25,3 +25,11 @@ def test_api_endpoints():
     assert client.get("/api/health").status_code == 200
     assert len(client.get("/api/cases").json["cases"]) == 14
     assert client.post("/api/cases/case-100/analyze").json["action"] == "CONTINUE"
+
+def test_duplicate_charge_exposes_decision_ready_handoff(tmp_path):
+    result = NexusService(tmp_path / "hero.db").analyze_case("case-401")
+    assert result["decision"]["decision"] == "HANDOFF"
+    assert result["decision"]["risk_level"] == "HIGH"
+    assert result["decision"]["confidence"] == 0.94
+    assert "Duplicate settled charges detected" in result["decision"]["stop_reasons"]
+    assert result["brief"]["evidence_summary"] == result["decision"]["stop_reasons"]

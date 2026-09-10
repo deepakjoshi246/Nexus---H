@@ -68,6 +68,9 @@ class NexusService:
                 "reason": decision.rationale,
                 "reason_codes": decision.signals,
                 "recommended_destination": self._destination(decision.action, case),
+                "stop_reasons": self._decision_highlights(case, decision),
+                "risk_level": self._risk_level(decision),
+                "confidence": self._confidence(decision),
             },
             "signals": self._signal_details(decision.signals, transaction, conversation),
             "rationale": decision.rationale,
@@ -83,6 +86,38 @@ class NexusService:
             result["brief"] = self._brief(case, customer, conversation, transaction, policy, decision)
             result["audit"] = self._audit_events(case.id)
         return result
+
+    def _decision_highlights(self, case, decision):
+        highlights = {
+            "duplicate-charge": [
+                "Duplicate settled charges detected",
+                "Financial dispute requires specialist authority",
+            ],
+            "refund-missing": [
+                "Previous refund commitment found",
+                "Refund is not visible in payment evidence",
+            ],
+            "fraud-handoff": [
+                "Unrecognized payment activity reported",
+                "Identity and transaction risk require review",
+            ],
+            "conflicting-records": [
+                "Payment systems report conflicting states",
+                "Reconciliation is required before another action",
+            ],
+            "missing-context": ["The requested action is not yet specific enough to execute safely"],
+        }
+        return highlights.get(case.scenario, [decision.rationale])
+
+    def _risk_level(self, decision):
+        if decision.action == "HANDOFF":
+            return "HIGH"
+        if decision.action == "APPROVAL":
+            return "MEDIUM"
+        return "LOW"
+
+    def _confidence(self, decision):
+        return {"HANDOFF": 0.94, "APPROVAL": 0.91, "CLARIFY": 0.88, "CONTINUE": 0.97}[decision.action]
 
     def _destination(self, action, case):
         if action == "HANDOFF" and case.scenario in ("fraud-handoff",):
@@ -129,12 +164,16 @@ class NexusService:
             "what_happened": "The agent retrieved the case, customer, transaction, conversation, and policy records.",
             "financial_context": f"{transaction.id} is {transaction.status} for {transaction.amount:.2f} {transaction.currency}.",
             "policy_context": f"{policy.id} allows automatic refunds up to {policy.max_auto_refund:.2f}.",
-            "actions_already_taken": ["Context retrieved", "Deterministic guardrails evaluated"],
+            "actions_already_taken": [
+                "Case, customer, conversation, transaction, and policy context retrieved",
+                "Deterministic guardrails evaluated",
+            ],
             "escalation_reason": decision.rationale,
             "routing_reason": f"{destination} matches the unresolved case capability.",
             "recommended_next_step": "Review the retrieved evidence and decide the customer-facing resolution.",
             "evidence": [case.id, customer.id, transaction.id, policy.id],
-            "confidence": 0.94,
+            "evidence_summary": self._decision_highlights(case, decision),
+            "confidence": self._confidence(decision),
         }
 
     def _audit(self, case_id, event, payload):
