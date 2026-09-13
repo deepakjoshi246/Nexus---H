@@ -13,3 +13,7 @@ run:
   env:
     - name: NEXUS_H_DB_PATH
       value: /tmp/nexus_h.db
+    - name: AWS_REGION
+      value: us-east-1
+    - name: NEXUS_H_MODEL_ID
+      value: amazon.nova-lite-v1:0

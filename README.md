@@ -26,7 +26,10 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open `http://127.0.0.1:5000` for the dashboard. No credentials are required for deterministic demo mode. The optional Strands adapter reports its status at `/api/health`; it never fabricates model output when unavailable.
+Open `http://127.0.0.1:5000` for the dashboard. The Strands Agents SDK is a
+required runtime dependency. NEXUS-H defaults to Amazon Nova Lite in
+`us-east-1`; local or deployed runs need AWS credentials with permission to
+invoke the configured Bedrock model.
 
 ## API
 
@@ -34,7 +37,11 @@ Open `http://127.0.0.1:5000` for the dashboard. No credentials are required for 
 
 ## Strands usage
 
-When enabled, `nexus_h/agent.py` constructs a Strands `Agent` with retrieval tools from `nexus_h/tools.py`. Model output is advisory only: deterministic guardrails and typed decision handling remain in control. Without a configured deployment, the same tool-backed deterministic workflow powers the demo.
+`nexus_h/agent.py` constructs the required Strands `Agent` with retrieval tools
+from `nexus_h/tools.py`. Model output is advisory only: deterministic
+guardrails and typed decision handling remain in control. Configure
+`NEXUS_H_MODEL_ID` and `AWS_REGION`, and grant the runtime role
+`bedrock:InvokeModel` for the selected model.
 
 ## Demo story
 
@@ -56,11 +63,13 @@ App Runner service from that repository with:
 - Start command: the Dockerfile default command
 - Health check path: `/api/health`
 - Environment: `NEXUS_H_DB_PATH=/tmp/nexus_h.db`
+- Environment: `AWS_REGION=us-east-1`
+- Environment: `NEXUS_H_MODEL_ID=amazon.nova-lite-v1:0`
 
 The MVP stores handoffs and audit events in SQLite, so local container storage
-is ephemeral. Use a managed database before production use. The deterministic
-demo does not require secrets. If enabling Strands, configure credentials using
-AWS IAM/role configuration rather than committing them.
+is ephemeral. Use a managed database before production use. Attach an App
+Runner instance role granting `bedrock:InvokeModel` instead of committing
+AWS access keys.
 
 ## Render deployment
 
