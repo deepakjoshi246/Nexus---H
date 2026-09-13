@@ -28,7 +28,7 @@ python app.py
 
 Open `http://127.0.0.1:5000` for the dashboard. The Strands Agents SDK is a
 required runtime dependency. NEXUS-H defaults to Amazon Nova Lite in
-`us-east-1`; local or deployed runs need AWS credentials with permission to
+Amazon Nova 2 Lite in `ap-south-1` (Asia Pacific - Mumbai); local or deployed runs need AWS credentials with permission to
 invoke the configured Bedrock model.
 
 ## API
@@ -63,8 +63,8 @@ App Runner service from that repository with:
 - Start command: the Dockerfile default command
 - Health check path: `/api/health`
 - Environment: `NEXUS_H_DB_PATH=/tmp/nexus_h.db`
-- Environment: `AWS_REGION=us-east-1`
-- Environment: `NEXUS_H_MODEL_ID=amazon.nova-lite-v1:0`
+- Environment: `AWS_REGION=ap-south-1`
+- Environment: `NEXUS_H_MODEL_ID=amazon.nova-2-lite-v1:0`
 
 The MVP stores handoffs and audit events in SQLite, so local container storage
 is ephemeral. Use a managed database before production use. Attach an App

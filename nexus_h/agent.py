@@ -16,8 +16,8 @@ class StrandsAdapter:
             tools.transaction,
             tools.policy,
         ]
-        self.model_id = os.getenv("NEXUS_H_MODEL_ID", "amazon.nova-lite-v1:0")
-        self.region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
+        self.model_id = os.getenv("NEXUS_H_MODEL_ID", "amazon.nova-2-lite-v1:0")
+        self.region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-south-1"))
         self._agent = Agent(
             model=self.model_id,
             system_prompt=(
