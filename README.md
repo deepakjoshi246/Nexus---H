@@ -4,7 +4,7 @@
 
 NEXUS-H is an AI-to-human control layer for billing support. It knows when an agent can continue, when it needs clarification or approval, and when a specialist should take over. The dashboard makes the evidence, decision boundary, route, human brief, and audit trail visible without exposing chain-of-thought.
 
-This repository is a deterministic MVP using synthetic data. The business guardrails remain authoritative; the optional Strands adapter is enabled only when the SDK and model credentials are configured.
+This repository is a deterministic MVP using synthetic data. Strands retrieves and interprets context, while deterministic business guardrails remain authoritative for the final safety decision.
 
 ## What is implemented
 
@@ -27,8 +27,8 @@ python app.py
 ```
 
 Open `http://127.0.0.1:5000` for the dashboard. The Strands Agents SDK is a
-required runtime dependency. NEXUS-H defaults to Amazon Nova Lite in
-Amazon Nova 2 Lite in `ap-south-1` (Asia Pacific - Mumbai); local or deployed runs need AWS credentials with permission to
+required runtime dependency. NEXUS-H defaults to Amazon Nova 2 Lite in
+`ap-south-1` (Asia Pacific - Mumbai); local or deployed runs need AWS credentials with permission to
 invoke the configured Bedrock model.
 
 ## API
