@@ -28,8 +28,8 @@ python app.py
 
 Open `http://127.0.0.1:5000` for the dashboard. The Strands Agents SDK is a
 required runtime dependency. NEXUS-H defaults to Amazon Nova 2 Lite in
-`ap-south-1` (Asia Pacific - Mumbai); local or deployed runs need AWS credentials with permission to
-invoke the configured Bedrock model.
+`ap-south-1` (Asia Pacific - Mumbai). Local or deployed analysis runs need AWS
+credentials with permission to invoke the configured Bedrock model.
 
 ## API
 
@@ -71,6 +71,17 @@ is ephemeral. Use a managed database before production use. Attach an App
 Runner instance role granting `bedrock:InvokeModel` instead of committing
 AWS access keys.
 
+## AWS Lightsail deployment
+
+The current public deployment runs on an AWS Lightsail instance in Mumbai
+(`ap-south-1`). Open the live dashboard at
+`http://65.0.130.235`. The instance runs Amazon Linux 2023, Python 3.11,
+Gunicorn, and Nginx, with `NEXUS_H_MODEL_ID=amazon.nova-2-lite-v1:0`.
+
+For production use, add HTTPS with a domain and certificate, attach an IAM
+role or another secure AWS credential mechanism for Bedrock, and replace the
+ephemeral SQLite database with managed persistence.
+
 ## Render deployment
 
 This repository includes `render.yaml`. Push the project to GitHub, choose
@@ -91,7 +102,8 @@ python app.py
 ```
 
 They then open `http://127.0.0.1:5000`. This local copy uses synthetic data and
-does not require cloud credentials.
+the dashboard and deterministic workflows are local, but Strands-backed
+analysis requires AWS credentials with `bedrock:InvokeModel` permission.
 
 ## Install as an app
 
