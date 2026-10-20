@@ -1,12 +1,13 @@
 const state = { cases: [], scenarios: [], selected: null };
 let installPrompt = null;
+let ringDeviceDiscoveryEnabled = false;
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 
 async function api(url, options) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Request failed.");
+  if (!response.ok) throw new Error(data.message || data.error || "Request failed.");
   return data;
 }
 
@@ -37,7 +38,7 @@ function renderCase(item) {
   $("#case-meta").textContent = `${item.customer_name || "Synthetic customer"} · ${item.priority || "NORMAL"} priority`;
   $("#case-status").textContent = item.status || "READY FOR ANALYSIS"; renderConversation(item.messages || item.conversation || []);
   $("#decision-card").innerHTML = '<span class="eyebrow">04 / AUTONOMY GATE</span><div class="decision-placeholder">Decision appears here after analysis.</div>';
-  $("#signals-card").classList.add("hidden"); $("#brief-card").classList.add("hidden"); $("#activity-body").innerHTML = '<div class="activity-placeholder">Run analysis to see the agent retrieve only the context this case needs.</div>'; $("#audit-body").innerHTML = '<div class="loading">Run analysis to populate the audit timeline.</div>'; $("#analyze-btn").disabled = false; renderCases();
+  $("#signals-card").classList.add("hidden"); $("#brief-card").classList.add("hidden"); $("#activity-body").innerHTML = '<div class="activity-placeholder">Run analysis to review retrieved case evidence and the deterministic safety decision.</div>'; $("#audit-body").innerHTML = '<div class="loading">Run analysis to populate the audit timeline.</div>'; $("#analyze-btn").disabled = false; renderCases();
 }
 
 function evidenceChips(ids = []) { return ids.length ? `<div class="evidence-chips">${ids.map((id) => `<span class="chip">${esc(id)}</span>`).join("")}</div>` : ""; }
@@ -58,16 +59,17 @@ function renderAnalysis(result) {
   const brief = result.brief || result.human_brief;
   if (brief) { $("#brief-card").classList.remove("hidden"); $("#brief-body").innerHTML = [["CUSTOMER GOAL", brief.customer_goal], ["SUMMARY", brief.one_line_summary || brief.summary], ["ACTIONS ALREADY TAKEN", brief.actions_already_taken], ["WHY AI STOPPED", brief.escalation_reason], ["EVIDENCE GATHERED", brief.evidence_summary], ["NEXT ACTION", brief.recommended_next_step || brief.next_action], ["ROUTING RATIONALE", brief.routing_reason]].filter(([, value]) => value).map(([label, value]) => `<div class="brief-section"><label>${label}</label>${Array.isArray(value) ? `<ul>${value.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>` : `<p>${esc(value)}</p>`}</div>`).join(""); }
   const activity = result.tool_calls || result.activities || result.evidence || [];
-  $("#tool-count").textContent = `${activity.length} TOOL CALLS`; $("#activity-body").innerHTML = activity.length ? activity.map((item) => `<div class="activity-item"><span class="activity-icon">✓</span><div><strong>${esc(item.tool || item.name || item.source || "Evidence retrieved")}</strong><p>${esc(item.summary || item.explanation || item.output || item.value || "Retrieved from synthetic source.")}</p>${evidenceChips(item.evidence_ids || [])}</div></div>`).join("") : '<div class="activity-placeholder">Decision completed with deterministic case evidence.</div>';
+  const advisory = result.model_advisory;
+  $("#tool-count").textContent = `${activity.length} EVIDENCE LOOKUPS`; $("#activity-body").innerHTML = (activity.length ? activity.map((item) => `<div class="activity-item"><span class="activity-icon">✓</span><div><strong>${esc(item.tool || item.name || item.source || "Evidence retrieved")}</strong><p>${esc(item.summary || item.explanation || item.output || item.value || "Retrieved from synthetic source.")}</p>${evidenceChips(item.evidence_ids || [])}</div></div>`).join("") : '<div class="activity-placeholder">Decision completed with deterministic case evidence.</div>') + (advisory ? `<div class="activity-item model-advisory"><span class="activity-icon">A</span><div><strong>Strands model advisory</strong><p>${esc(advisory)}</p></div></div>` : "");
   const audit = result.audit || result.audit_events || [];
   $("#audit-body").innerHTML = audit.length ? audit.map((event) => `<div class="audit-event"><time>${esc(event.timestamp || "")}</time><div><strong>${esc(event.action || event.event_type || "EVENT")}</strong><p>${esc(event.reason || event.output_summary || "")}</p></div></div>`).join("") : '<div class="loading">No audit events returned.</div>';
 }
 
 async function analyze() {
   if (!state.selected) return;
-  const button = $("#analyze-btn"); button.disabled = true; button.textContent = "Agent is retrieving…";
+  const button = $("#analyze-btn"); button.disabled = true; button.textContent = "Analyzing case…";
   try { const result = await api(`/api/cases/${encodeURIComponent(state.selected.case_id)}/analyze`, { method: "POST" }); renderAnalysis(result); await loadQueue(); showToast("Analysis complete — decision recorded."); }
-  catch (error) { showToast(error.message); } finally { button.disabled = false; button.innerHTML = 'Run agent analysis <span>↗</span>'; }
+  catch (error) { showToast(error.message); } finally { button.disabled = false; button.innerHTML = 'Run case analysis <span>↗</span>'; }
 }
 
 async function loadQueue() {
@@ -75,14 +77,64 @@ async function loadQueue() {
   $("#queue-count").textContent = items.length; $("#queue-body").innerHTML = items.length ? items.map((item) => `<tr><td><span class="priority ${(item.priority || "").toLowerCase()}">${esc(item.priority || "HIGH")}</span></td><td><strong>${esc(item.case_id)}</strong></td><td class="route">${esc(item.destination || item.team || "Human review")}</td><td class="reason-cell">${esc(item.escalation_reason || item.reason || "Requires specialist review")}</td><td>${esc(item.age || "now")}</td></tr>`).join("") : '<tr><td colspan="5" class="loading">No active handoffs.</td></tr>';
 }
 
+async function loadIntegrationStatus() {
+  try {
+    const data = await api("/api/integrations");
+    $("#alexa-mcp-endpoint").textContent = new URL(data.alexa_plus.endpoint, window.location.origin).href;
+    $("#alexa-integration-status").textContent = "MCP tools are ready; the Streamable HTTP server must be running behind the /mcp proxy.";
+    let ringStatus = !data.ring.configured
+      ? "Register a Ring Partner app to enable authorized device lookup."
+      : data.ring.linked
+        ? "Ring account linked to this signed-in user; device data comes from the Ring Partner API."
+        : data.ring.user_authenticated
+          ? "Start account linking from the Ring App Store to connect your Ring account."
+          : "Partner credentials are ready; start account linking from the Ring App Store.";
+    if (data.ring.configured && !data.ring.webhook_signing_configured) {
+      ringStatus += " The webhook signing key is also not configured.";
+    }
+    if (!data.ring.cognito_configured) {
+      ringStatus += " Configure Cognito sign-in before linking a Ring account.";
+    }
+    $("#ring-integration-status").textContent = ringStatus;
+    $("#ring-login-link").hidden = !data.ring.cognito_configured || data.ring.user_authenticated;
+    $("#ring-logout-link").hidden = !data.ring.user_authenticated;
+    ringDeviceDiscoveryEnabled =
+      data.ring.account_linking_implemented && data.ring.linked;
+    $("#ring-devices-btn").disabled = !ringDeviceDiscoveryEnabled;
+  } catch (error) {
+    $("#alexa-integration-status").textContent = error.message;
+    $("#ring-integration-status").textContent = "Integration status is unavailable.";
+  }
+}
+
+async function loadRingDevices() {
+  const button = $("#ring-devices-btn");
+  const result = $("#ring-devices-list");
+  button.disabled = true;
+  result.textContent = "Loading authorized Ring devices…";
+  try {
+    const response = await api("/api/ring/devices");
+    const devices = response.data || response.devices || [];
+    result.textContent = devices.length
+      ? devices.map((device) => device.attributes?.name || device.name || device.id).join(" · ")
+      : "No Ring devices are linked to this account.";
+  } catch (error) {
+    result.textContent = error.message;
+  } finally {
+    button.disabled = !ringDeviceDiscoveryEnabled;
+  }
+}
+
 async function loadAll() {
   try { const [cases, scenarios] = await Promise.all([api("/api/cases"), api("/api/scenarios")]); state.cases = cases.items || cases.cases || cases; state.scenarios = scenarios.items || scenarios.scenarios || scenarios; renderCases(); renderScenarios(); await loadQueue(); if (state.cases[0]) renderCase(state.cases[0]); }
   catch (error) { showToast(error.message); $("#case-list").innerHTML = `<div class="loading">${esc(error.message)}</div>`; }
+  await loadIntegrationStatus();
 }
 
 $("#case-list").addEventListener("click", (event) => { const row = event.target.closest("[data-case]"); if (row) renderCase(state.cases.find((item) => item.case_id === row.dataset.case)); });
 $("#scenario-list").addEventListener("click", (event) => { const button = event.target.closest("[data-scenario]"); const item = state.cases.find((candidate) => candidate.case_id === button?.dataset.scenario || candidate.id === button?.dataset.scenario || candidate.scenario === button?.dataset.scenario); if (item) renderCase(item); });
 $("#case-search").addEventListener("input", renderCases); $("#analyze-btn").addEventListener("click", analyze);
+$("#ring-devices-btn").addEventListener("click", loadRingDevices);
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installPrompt = event;

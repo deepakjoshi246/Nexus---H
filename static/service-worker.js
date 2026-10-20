@@ -1,8 +1,9 @@
-const CACHE_NAME = "nexus-h-v1";
+const CACHE_NAME = "nexus-h-v2";
 const APP_SHELL = [
   "/",
   "/static/app.js",
   "/static/styles.css",
+  "/static/install.css",
   "/static/manifest.webmanifest",
   "/static/icon.svg"
 ];
@@ -14,13 +15,34 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key.startsWith("nexus-h-") && key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    ))
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
+    try {
+      const response = await fetch(event.request);
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(event.request, response.clone());
+      }
+      return response;
+    } catch (error) {
+      if (cached) return cached;
+      if (event.request.mode === "navigate") {
+        const shell = await caches.match("/");
+        if (shell) return shell;
+      }
+      throw error;
+    }
+  })());
 });

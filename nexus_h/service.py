@@ -49,6 +49,20 @@ class NexusService:
     def health(self):
         return {"status": "ok", "service": "nexus-h", "deterministic": True, "agent": self.agent.status()}
 
+    def evaluate_case(self, case_id):
+        case = self.get_case(case_id)
+        if case is None:
+            return None
+        customer, conversation, transaction, policy = self._lookup(case)
+        decision = decide(case, customer, conversation, transaction, policy)
+        return {
+            "case_id": case.id,
+            "decision": decision.action,
+            "reason": decision.rationale,
+            "reason_codes": decision.signals,
+            "source": "deterministic_guardrails",
+        }
+
     def _lookup(self, case):
         return (next(c for c in CUSTOMERS if c.id == case.customer_id),
                 next(c for c in CONVERSATIONS if c.id == case.conversation_id),
@@ -78,6 +92,14 @@ class NexusService:
             "agent": self.agent.status(),
             "tool_calls": self._tool_activity(case, customer, conversation, transaction, policy),
         }
+        if self.agent.advisory_enabled:
+            result["model_advisory"] = self.agent.analyze(
+                f"Review synthetic billing support case {case.id}. Use the retrieval "
+                "tools for relevant evidence. Return a concise factual summary and "
+                "suggested human follow-up only. Do not decide whether to issue a "
+                "refund, change an account, or claim an action was completed. Do not "
+                "reveal chain-of-thought."
+            )
         result["audit"] = self._audit_events(case.id)
         self._audit(case.id, "analysis", result)
         result["audit"] = self._audit_events(case.id)

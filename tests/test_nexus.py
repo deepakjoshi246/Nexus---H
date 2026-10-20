@@ -19,6 +19,26 @@ def test_handoff_is_idempotent(tmp_path):
     assert first["handoff"]["id"] == second["handoff"]["id"] == "handoff-case-300"
     assert len(service.queue()) == 1
 
+def test_evaluate_case_previews_without_side_effects(tmp_path):
+    service = NexusService(tmp_path / "preview.db")
+    result = service.evaluate_case("case-300")
+    assert result["decision"] == "HANDOFF"
+    assert result["source"] == "deterministic_guardrails"
+    assert service.queue() == []
+    with service._connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM audit").fetchone()[0] == 0
+
+def test_strands_advisory_is_opt_in_and_cannot_change_guardrail_decision(tmp_path, monkeypatch):
+    monkeypatch.setenv("NEXUS_H_ENABLE_MODEL_ADVISORY", "false")
+    service = NexusService(tmp_path / "advisory.db")
+    assert service.agent.advisory_enabled is False
+    monkeypatch.setattr(service.agent, "advisory_enabled", True)
+    monkeypatch.setattr(service.agent, "analyze", lambda _prompt: "Check order status.")
+
+    result = service.analyze_case("case-100")
+    assert result["action"] == "CONTINUE"
+    assert result["model_advisory"] == "Check order status."
+
 def test_api_endpoints():
     from app import app
     client = app.test_client()

@@ -36,6 +36,18 @@
       <div id="scenario-list" class="scenario-list"><span class="loading">Loading scenarios...</span></div>
     </section>
 
+    <section class="integration-strip panel" aria-label="Alexa Plus and Ring integrations">
+      <div class="integration-card">
+        <div><span class="eyebrow">ALEXA+ / MCP</span><strong>Support tools over Streamable HTTP</strong><p id="alexa-integration-status">Loading MCP endpoint status…</p></div>
+        <code id="alexa-mcp-endpoint">/mcp</code>
+      </div>
+      <div class="integration-card">
+        <div><span class="eyebrow">RING / PARTNER API</span><strong>Authorized device context</strong><p id="ring-integration-status">Checking Ring Partner API configuration…</p><div class="integration-auth-actions"><a id="ring-login-link" class="scenario-btn" href="/auth/login" hidden>Sign in to NEXUS-H</a><a id="ring-logout-link" class="scenario-btn" href="/auth/logout" hidden>Sign out</a></div></div>
+        <button id="ring-devices-btn" class="scenario-btn" type="button">Check Ring devices</button>
+        <div id="ring-devices-list" class="integration-result" aria-live="polite"></div>
+      </div>
+    </section>
+
     <section class="workspace-layout">
       <aside class="inbox panel">
         <div class="panel-heading"><div><span class="eyebrow">01 / INBOX</span><h2>Active cases</h2></div><span id="case-count" class="count-badge">—</span></div>
@@ -48,10 +60,10 @@
         <div id="active-case" class="hidden">
           <div class="case-header panel">
             <div><div class="case-id" id="case-id">CASE-—</div><h2 id="case-title">—</h2><p id="case-meta">—</p></div>
-            <button id="analyze-btn" class="primary-btn">Run agent analysis <span>↗</span></button>
+            <button id="analyze-btn" class="primary-btn">Run case analysis <span>↗</span></button>
           </div>
           <div class="conversation panel"><div class="panel-heading"><div><span class="eyebrow">02 / CUSTOMER CONTEXT</span><h3>Conversation</h3></div><span class="mini-label" id="case-status">—</span></div><div id="conversation-body"></div></div>
-          <div class="activity panel"><div class="panel-heading"><div><span class="eyebrow">03 / AGENT ACTIVITY</span><h3>Evidence & decisions</h3></div><span id="tool-count" class="mini-label">0 TOOL CALLS</span></div><div id="activity-body"><div class="activity-placeholder">Run analysis to see the agent retrieve only the context this case needs.</div></div></div>
+          <div class="activity panel"><div class="panel-heading"><div><span class="eyebrow">03 / CASE ANALYSIS</span><h3>Evidence & decisions</h3></div><span id="tool-count" class="mini-label">0 EVIDENCE LOOKUPS</span></div><div id="activity-body"><div class="activity-placeholder">Run analysis to review retrieved case evidence and the deterministic safety decision.</div></div></div>
         </div>
       </section>
 
