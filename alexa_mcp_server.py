@@ -13,6 +13,7 @@ service = NexusService()
 render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 default_allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
 if render_hostname:
+    default_allowed_hosts.append(render_hostname)
     default_allowed_hosts.append(f"{render_hostname}:*")
 allowed_hosts = [
     host.strip()

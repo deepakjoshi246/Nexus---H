@@ -20,6 +20,8 @@ services:
         value: 10000
       - key: MCP_HOST
         value: 0.0.0.0
+      - key: MCP_ALLOWED_HOSTS
+        value: nexus-h-mcp.onrender.com,nexus-h-mcp.onrender.com:*
       - key: NEXUS_H_DB_PATH
         value: /tmp/nexus_h.db
       - key: NEXUS_H_API_BASE_URL
