@@ -1,5 +1,7 @@
 """Streamable HTTP MCP server for Alexa+ NEXUS-H support tools."""
+import json
 import os
+from urllib.request import Request, urlopen
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
@@ -8,10 +10,14 @@ from nexus_h.service import NexusService
 
 
 service = NexusService()
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+default_allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+if render_hostname:
+    default_allowed_hosts.append(f"{render_hostname}:*")
 allowed_hosts = [
     host.strip()
     for host in os.getenv(
-        "MCP_ALLOWED_HOSTS", "127.0.0.1:*,localhost:*,[::1]:*"
+        "MCP_ALLOWED_HOSTS", ",".join(default_allowed_hosts)
     ).split(",")
     if host.strip()
 ]
@@ -31,7 +37,7 @@ mcp = FastMCP(
         "action was executed. Escalations require human review."
     ),
     host=os.getenv("MCP_HOST", "127.0.0.1"),
-    port=int(os.getenv("MCP_PORT", "8001")),
+    port=int(os.getenv("MCP_PORT", os.getenv("PORT", "8001"))),
     stateless_http=True,
     transport_security=TransportSecuritySettings(
         allowed_hosts=allowed_hosts,
@@ -75,6 +81,18 @@ def analyze_support_case(case_id: str) -> dict:
 @mcp.tool()
 def get_human_queue() -> list[dict]:
     """List cases already waiting for specialist handoff."""
+    api_base_url = os.getenv("NEXUS_H_API_BASE_URL")
+    if api_base_url:
+        request = Request(
+            f"{api_base_url.rstrip('/')}/api/queue",
+            headers={"Accept": "application/json"},
+        )
+        with urlopen(request, timeout=15) as response:
+            payload = json.loads(response.read())
+        items = payload.get("items") if isinstance(payload, dict) else None
+        if not isinstance(items, list):
+            raise RuntimeError("Dashboard queue API returned an invalid response.")
+        return items
     return service.queue()
 
 

@@ -221,6 +221,23 @@ def test_alexa_mcp_registers_streamable_support_tools():
     assert mcp.settings.stateless_http
 
 
+def test_alexa_mcp_queue_reads_live_dashboard_queue(monkeypatch):
+    import alexa_mcp_server
+
+    expected = [{"case_id": "case-300", "destination": "fraud_specialist"}]
+    calls = []
+
+    def open_dashboard(request, timeout):
+        calls.append((request.full_url, timeout))
+        return MockResponse(json.dumps({"items": expected}).encode())
+
+    monkeypatch.setenv("NEXUS_H_API_BASE_URL", "https://nexus-h.example/")
+    monkeypatch.setattr(alexa_mcp_server, "urlopen", open_dashboard)
+
+    assert alexa_mcp_server.get_human_queue() == expected
+    assert calls == [("https://nexus-h.example/api/queue", 15)]
+
+
 def test_ring_webhook_acknowledges_valid_event_with_http_200(monkeypatch):
     from app import app
 

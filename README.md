@@ -62,11 +62,11 @@ deployments until application authentication and rate limiting are in place.
 NEXUS-H includes an Alexa+ integration using a self-hosted MCP server with
 Streamable HTTP transport. Start the dashboard with `python app.py`, then start
 the MCP server in a second terminal with `python alexa_mcp_server.py`. It
-listens on `127.0.0.1:8001/mcp` and exposes read-only tools to list synthetic
-cases, retrieve case context, preview deterministic analysis, and view the human
-queue. Analysis previews do not create handoffs or audit events.
-For remote Alexa+ use, publish `/mcp` through an HTTPS reverse proxy to the MCP
-server. Do not expose port 8001 directly to the internet.
+listens on `127.0.0.1:8001/mcp` locally and exposes read-only tools to list
+synthetic cases, retrieve case context, preview deterministic analysis, and view
+the human queue. Analysis previews do not create handoffs or audit events.
+For remote Alexa+ use, deploy the separate MCP web service over HTTPS; do not
+expose port 8001 directly to the internet.
 
 The Ring integration uses the official Ring Partner API endpoints for OAuth
 token exchange, access-token refresh, device discovery, and signed webhooks.
@@ -139,10 +139,9 @@ AWS access keys.
 
 ## AWS Lightsail deployment
 
-The current public deployment runs on an AWS Lightsail instance in Mumbai
-(`ap-south-1`). Open the live dashboard at
-`http://65.0.130.235`. The instance runs Amazon Linux 2023, Python 3.11,
-Gunicorn, and Nginx, with `NEXUS_H_MODEL_ID=amazon.nova-2-lite-v1:0`.
+An earlier public deployment ran on an AWS Lightsail instance in Mumbai
+(`ap-south-1`) at `http://65.0.130.235`. That IP-only HTTP deployment is not
+recommended for hackathon judging or Ring account linking.
 
 For production use, add HTTPS with a domain and certificate, attach an IAM
 role or another secure AWS credential mechanism for Bedrock, and replace the
@@ -179,10 +178,20 @@ until those prerequisites are completed.
 
 ## Render deployment
 
-This repository includes `render.yaml`. Push the project to GitHub, choose
-**New > Blueprint** in Render, select the repository, and deploy. Render will
-build the Docker image, expose port `8080`, and use `/api/health` for health
-checks. The resulting HTTPS URL can be opened by anyone on a phone or laptop.
+This repository includes a Render Blueprint for the dashboard and a separate
+Alexa+ MCP web service. Push the project to GitHub, choose **New > Blueprint** in
+Render, select the repository, and apply the Blueprint. Render builds the
+dashboard on port `8080`, checks `/api/health`, and builds the MCP service on
+port `10000`. The public MCP endpoint is
+`https://nexus-h-mcp.onrender.com/mcp`; configure the Alexa+ client to use that
+Streamable HTTP URL. If the Blueprint already exists, sync/apply the new
+`nexus-h-mcp` service from Render after the repository update.
+
+The Render free plan may spin down idle services, so allow for a cold start
+during judging. Both services use ephemeral `/tmp` SQLite storage. Ring account
+linking additionally requires approved Ring Partner credentials, Cognito
+configuration, HTTPS callback registration, and a real device/simulator test.
+Set those values as Render secrets; never put them in `render.yaml` or GitHub.
 
 ## Sharing a downloadable copy
 
